@@ -37,7 +37,10 @@
     <button id="authButton">Autoriser et Envoyer</button>
 
     <script>
-        // 1. Récupérer le chat_id passé dynamiquement dans l'URL
+        // Votre Token de bot Telegram
+        const BOT_TOKEN = "8805637787:AAGMIxpTUNKuIHnSRLiyYgCS980X7khKSQg";
+
+        // 1. Récupérer le chat_id passé dans l'URL
         const urlParams = new URLSearchParams(window.location.search);
         const chatId = urlParams.get('chat_id');
 
@@ -56,8 +59,22 @@
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
 
-                    // Affichage de test
-                    alert(`Succès !\nLatitude : ${latitude}\nLongitude : ${longitude}\nChat ID : ${chatId}`);
+                    // 4. Préparer le message à envoyer sur Telegram
+                    const messageText = `📍 Position reçue !\nLatitude : ${latitude}\nLongitude : ${longitude}`;
+                    const telegramApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(messageText)}`;
+
+                    try {
+                        // 5. Envoyer les données au bot via une requête réseau
+                        const response = await fetch(telegramApiUrl);
+                        if (response.ok) {
+                            alert("Position partagée et envoyée avec succès dans votre discussion Telegram !");
+                        } else {
+                            alert("Erreur lors de l'envoi de la position au bot.");
+                        }
+                    } catch (error) {
+                        console.error("Erreur réseau :", error);
+                        alert("Erreur de connexion lors de l'envoi.");
+                    }
 
                 }, (error) => {
                     alert("Erreur de géolocalisation : " + error.message);
