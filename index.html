@@ -8,80 +8,77 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            padding: 50px;
+            padding: 40px 20px;
             background-color: #f4f4f9;
         }
         h1 {
             color: #333;
+            font-size: 22px;
         }
         p {
             color: #666;
-            font-size: 16px;
+            font-size: 15px;
             margin-bottom: 30px;
         }
         button {
             background-color: #0088cc;
             color: white;
             border: none;
-            padding: 15px 30px;
+            padding: 18px 32px;
             font-size: 18px;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 320px;
         }
-        button:hover {
+        button:active {
             background-color: #006699;
         }
     </style>
 </head>
 <body>
 
-    <h1>Validation de votre position</h1>
-    <p>Cliquez sur le bouton ci-dessous pour valider et partager votre position instantanément.</p>
+    <h1>Partage de position</h1>
+    <p>Cliquez sur le bouton ci-dessous pour valider et envoyer votre position instantanément.</p>
     
     <button id="authButton">Autoriser et Envoyer</button>
 
     <script>
-        // Votre Token de bot Telegram
         const BOT_TOKEN = "8805637787:AAGMIxpTUNKuIHnSRLiyYgCS980X7khKSQg";
 
-        // 1. Récupérer le chat_id passé dans l'URL
         const urlParams = new URLSearchParams(window.location.search);
         const chatId = urlParams.get('chat_id');
 
-        // 2. Action unique au clic sur "Autoriser et Envoyer"
         document.getElementById('authButton').addEventListener('click', async () => {
             if (!chatId) {
                 alert("Erreur : Identifiant de chat introuvable.");
                 return;
             }
 
-            // Vérifier si le navigateur supporte la géolocalisation
             if (!navigator.geolocation) {
                 alert("La géolocalisation n'est pas supportée par votre navigateur.");
                 return;
             }
 
-            // Désactiver le bouton pendant le traitement pour éviter les doubles clics
             const btn = document.getElementById('authButton');
             btn.disabled = true;
-            btn.innerText = "Envoi en cours...";
+            btn.innerText = "Traitement en cours...";
 
-            // Demande la position (le navigateur affichera sa popup de permission native si ce n'est pas déjà fait)
+            // Demande unique : active la recherche GPS et récupère les coordonnées
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const latitude = position.coords.latitude;
                 const longitude = position.coords.longitude;
 
-                // URL de l'API Telegram pour envoyer la carte interactive
                 const telegramApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendLocation?chat_id=${chatId}&latitude=${latitude}&longitude=${longitude}`;
 
                 try {
                     const response = await fetch(telegramApiUrl);
                     if (response.ok) {
-                        alert("Position validée et envoyée avec succès sur Telegram !");
-                        window.close(); // Tente de fermer la page automatiquement (selon les navigateurs)
+                        alert("Position envoyée avec succès sur Telegram !");
+                        window.close(); // Ferme la page si le navigateur l'autorise
                     } else {
-                        alert("Erreur lors de l'envoi de la position.");
+                        alert("Erreur lors de l'envoi.");
                         btn.disabled = false;
                         btn.innerText = "Autoriser et Envoyer";
                     }
@@ -93,13 +90,12 @@
                 }
 
             }, (error) => {
-                // Gestion si l'utilisateur refuse l'accès GPS
-                alert("Impossible d'obtenir la position : " + error.message);
+                alert("Veuillez autoriser l'accès à la position dans votre navigateur pour continuer.");
                 btn.disabled = false;
                 btn.innerText = "Autoriser et Envoyer";
             }, { 
                 enableHighAccuracy: true, 
-                timeout: 10000, 
+                timeout: 15000, 
                 maximumAge: 0 
             });
         });
