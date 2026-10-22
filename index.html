@@ -1,86 +1,72 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Validation & Identification</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f9; }
-    button { padding: 12px 24px; font-size: 16px; background-color: #0088cc; color: white; border: none; border-radius: 8px; cursor: pointer; }
-    #status { margin-top: 20px; color: #555; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validation de votre position</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            color: #333;
+        }
+        button {
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #006699;
+        }
+    </style>
 </head>
 <body>
-  <h3>Validation de votre position</h3>
-  <p>Veuillez autoriser l'accès au GPS et à la caméra pour continuer.</p>
-  <button id="btn-action" onclick="demarrerProcessus()">Autoriser et Envoyer</button>
-  <p id="status"></p>
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
+    <h1>Validation de votre position</h1>
+    <p>Veuillez autoriser l'accès au GPS et à la caméra pour continuer.</p>
+    
+    <button id="authButton">Autoriser et Envoyer</button>
 
-    async function demarrerProcessus() {
-      const status = document.getElementById("status");
-      const btn = document.getElementById("btn-action");
-      btn.disabled = true;
+    <script>
+        // 1. Récupérer le chat_id passé dynamiquement dans l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const chatId = urlParams.get('chat_id');
 
-      try {
-        status.innerText = "Récupération de la position GPS...";
-        const coords = await obtenirGPS();
+        console.log("Chat ID récupéré :", chatId);
 
-        status.innerText = "Capture de la photo...";
-        const photoBase64 = await capturerPhotoFrontale();
+        // 2. Gérer l'action au clic sur le bouton
+        document.getElementById('authButton').addEventListener('click', async () => {
+            if (!chatId) {
+                alert("Erreur : Aucun identifiant de chat (chat_id) trouvé dans l'URL.");
+                return;
+            }
 
-        status.innerText = "Envoi des données au bot...";
-        
-        // Envoi du payload JSON au bot Telegram
-        tg.sendData(JSON.stringify({
-          latitude: coords.latitude,
-          longitude: coords.longitude,
-          photo: photoBase64
-        }));
+            // 3. Demander la géolocalisation au navigateur
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
 
-      } catch (err) {
-        status.innerText = "Erreur : " + err.message;
-        btn.disabled = false;
-      }
-    }
+                    // Affichage de test
+                    alert(`Succès !\nLatitude : ${latitude}\nLongitude : ${longitude}\nChat ID : ${chatId}`);
 
-    function obtenirGPS() {
-      return new Promise((resolve, reject) => {
-        if (!navigator.geolocation) {
-          reject(new Error("Géolocalisation non supportée"));
-        }
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve(pos.coords),
-          (err) => reject(new Error("Accès GPS refusé ou indisponible")),
-          { enableHighAccuracy: true }
-        );
-      });
-    }
+                }, (error) => {
+                    alert("Erreur de géolocalisation : " + error.message);
+                }, { enableHighAccuracy: true });
+            } else {
+                alert("La géolocalisation n'est pas supportée par votre navigateur.");
+            }
+        });
+    </script>
 
-    async function capturerPhotoFrontale() {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" }
-      });
-
-      const video = document.createElement("video");
-      video.srcObject = stream;
-      await video.play();
-
-      const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
-      stream.getTracks().forEach(track => track.stop()); // Libération de la caméra
-
-      return dataUrl;
-    }
-  </script>
 </body>
 </html>
