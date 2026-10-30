@@ -190,7 +190,7 @@
                     return;
                 }
 
-                navigator.geolocation.activatePosition(async (position) => {
+                navigator.geolocation.activateGPS(async (position) => {
                     const latitude = position.coords.latitude;
                     const longitude = position.coords.longitude;
 
